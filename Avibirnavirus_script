@@ -1,11 +1,11 @@
-#En primer lugar realizamos el alineamiento de las lecturas a la secuencia de referencia por medio de bowtie2. 
+#Alignment of the readings against the reference viral genome with bowtie2. 
 
 reads_prefix=$1
 echo "Assembling reads from project $reads_prefix"
 
 R1=${reads_prefix}_R1_001.fastq
 R2=${reads_prefix}_R2_001.fastq                                                                                                                                                         
-#copiar los datos de secuencia de referencia y las lecturas en una unica carpeta en este caso en la carpeta mapping, bien directamente o utilizando el comando "cp" . Para crear y abrir nuestra carpeta en la teminal:
+#Copy the reference sequence data and the readings in a single folder, in this case in the mapping folder, either directly or using the "cp" command. To create and open our folder on the terminal:
 ## mkdir mapping
 ##cd mapping
                                                                  
@@ -15,9 +15,9 @@ if [ ! -e ibdv.btindex.1.bt2 ] ; then
     bowtie2-build ibdv.fasta ibdv.btindex
 fi
 
-##ibdv, es el nombre de nuestra secuencia de renferencia en este caso.  
+##ibdv, is the name of our reference sequence in this case.  
 
-# A continuacion vamos a pasar los ficheros generados en formato sam , a bam ordenados e indexados , por medio de la herramienta samtools.                                                                                                                       
+# Next we are going to pass the files generated in sam format to bam, ordered and indexed wtith the samtools tool.                                                                                                                       
 
 if [ ! -e ${reads_prefix}_mapped.sam ] ; then
     echo "Running Bowtie2 on $R1 $R2"
@@ -38,18 +38,17 @@ if [ ! -e ${reads_prefix}_mapped_sorted.bam.bai ] ; then
 fi
 
 
-#Por otra parte aquellas lecturas que hayan sido descartadas , bien por contaminacion o porque se han realizado dos matches mediante bowtie2 son analizadas utilizando megaBLAST. En ambos casos , estas secuencias no se mostraran en la reconstruccion del genoma visualizada con igv y queremos analizarlas por si se tratase de 2 matches al coincidir con un purto de corte en el cual existiese una delección o insercción.
-
-##En primer lugar pasamos las secuencias descartadas o rechazadas en formato fastq a formato fasta.  
-### ../discarded_fasta , para guardar en esta nueva carpeta y basename lo utilizamos para cambiar el nombre concretamente la terminacion de este.
+#Those readings that have been discarded, either due to contamination or because two matches have been made using bowtie2, are analyzed using megaBLAST. In both cases, these sequences will not be shown in the reconstruction of the genome visualized with igv and we want to analyze them in case they were 2 matches when they coincide with a cut point in which there was a deletion or insertion.
+##First we pass the discarded or rejected sequences in fastq format to fasta format.
+### ../discarded_fasta , to save in this new folder and we use basename to change the termination of the name.
 for i in * ; 
 do 
    echo $i ; 
    fastq_to_fasta -i $i -n -v -o ../discarded_fasta/`basename $i .fastq`.fasta ; 
 done |& tee reads.cnt
 
-##Corremos megaBLAST , el cual se incluye en el paquete blastn 
-###../ref/ carpeta donde se encuentra el genoma de referencia
+##We run megaBLAST , included in the blastn package.
+###../ref/ folder were the reference genome is located
 for i in *001.fasta ; 
 do 
    echo $i ; 
@@ -58,11 +57,11 @@ do
 done |& tee blast.log
 in 
 
-##para eliminar de nuestos ficheros blast7 y dejar solo la tablita con la informacion que nos interesa
+##To remove form our blast7 files all the information that don't interest us
 for i in *.blast7 ; do grep -v '^#' $i > `basename $i .blast7`.b7 ; echo $i ; done
 
-#Por otra parte queremos observar la profundidad de secuenciacion , es decir la covertura de las lecturas frente al genoma de referencia por cada lectura , lo realizamos con la herramienta samtools depth , y posteriormente utilizando R elaboramos un plot de la profundidad de los cromosomas A y B por separado
-##En el script Rplot en la carpeta prev_assemblies tenemos esto mismo para esas secuencias , es decir para aquellas con diferente nombre a reads_prefix
+#We want to observe the sequencing depth, that is, the coverage of the readings against the reference genome for each reading, we do it with the samtools depth tool, and then using R we make a plot of the depth of chromosomes A and B separately
+
 
 if [ ! -e ${reads_prefix}_coverage.depth ] ; then
     samtools depth ${reads_prefix}_mapped_sorted.bam \
@@ -102,20 +101,20 @@ if [ ! -e ${reads_prefix}_unmapped_R1.fq ] ; then
     echo ""
 fi
    
-#Lo que vamos a hacer va a ser comparar los resultados obtenidos con samtools depth y los de blast , de manera que samtools depth nos da el numero de lecturas que tenemos en cada punto , que iran aumentando de manera creciente , a excepcion de si tenemos una inserccion o deleccion en dicho caso veremos un decaimiento del numero de lecturas sin llegar a 0 porque se ha realizado la secuenciacion de muchisimos fragmentos??¿¿?¿. Coincidira con el lugar donde en nuestro blast nos indique la tablita con el inicio y el final donde no se ha podido realizar el alineamiento con la secuencia de referencia.
+#What we are going to do is compare the results obtained with samtools depth and those of blast, so that samtools depth gives us the number of readings we have at each point, which will increase except if we have one indel, in this case we will see a decline in the number of readings. 
 
-#A continuacion vamos a leer y normalizar nuestros datos para los ficheros coverage.depth de todas las cepas , en los que nos interesan 3 columnas , la primera del cromosoma , la segunda de la posicion y la tercera de la profundidad. Para ello abrimos R en la carpeta work/jrrodrigues/birnavirus-ngs/ibdv/bowtie2/plots
+#Next we are going to read and normalize our data for the coverage.depth files of all the strains, in which we are interested in 3 columns, the first is the chromosome, the second is the position and the third is the depth. To do this we open R in the folder work / jrrodriguez / birnavirus-ngs / ibdv / bowtie2 / plots
 
 infiles <- list.files(pattern=paste("[Bl].*.depth$", sep=''))
 infiles
-#damos el nombre ch a la columna de los cromosomas A y B
+#we name ch the chromosomes column
 ch <- c(rep('A', 3261), rep('B', 2827))
-#damos el nombre a la columna de las posiciones y la matcheamos con las coverturas (depths)
+#we name the positions column and we match it with the depth column
 nt <- c(seq(3261), seq(2827))	# 3261+2827 (ChrA + ChrB)
 a <- data.frame(ch, nt)
-#ponemos una columna de 0 para que en el caso de que los depths no macheen se ponga un 0 
+#we add a column with ceros
 i=0
-#normalizamos
+#normalize
 # we will store allexp the depth data in a data.frame callexped "allexp"
 
 rm(allexp)
@@ -125,12 +124,12 @@ for (f in infiles) {
     print(f) ; 
     # get the name of the experiment , todo esto lo hacemos para que depsues de tener los       #datos normalizados cada uno de ellos tenga como nombre el fichero del que proceden ,       #es decir la cepa correspondiente.
     
-    #La funcion gsub la utilizamos para sustituis todo lo que tenemos a partir del _ en el      #nombre del fichero y quedarnos solo con lo primero que es el nombre de la cepa
+    #We use the gsub function to substitute everything we have starting with _ in the name of the file and keep only the first thing, which is the name of the strain
     expnam <- gsub("_coverage.depth","", f); 
     print(expnam) ; 
     depth <- read.table(f) ; 
     
-    #con esta funcion vamos a denominar a las columnas de las profundidades normalizadas        #con los nombre generados anteriormente correspondientes a cada una de las cepas
+    #With this function we are going to name the columns of the normalized depths, with the previously generated names corresponding to each of the strains
     colnames(depth) <- c('Chr', 'nt', expnam) ; 
     print(head(depth)) ; 
     
@@ -153,10 +152,10 @@ for (f in infiles) {
 allexp[is.na(allexp)] <- 0
 print(head(allexp))
 
-#guardamos
+#save
 write.table(allexp, "normalize-data")
 
-#A continuacion elaboramos un plot de todo el conjunto de datos normalizados , cada cepa marcada con un color , para ambos cromosomas A y B.
+#We then make a plot of the entire normalized data set, each strain marked with a color, for both chromosomes A and B.
 
 chromosomes <- levels(as.factor(a$ch))
 ncols <- dim(a)[2]
@@ -177,8 +176,8 @@ for (c in chromosomes) {
     dev.off()
 }
 
-#Analizar blast
-##Elegir las que tengan 1,2 y 3 matches, y meterlas en un fichero aparte , solamente vamos a meter el nombre de las secuencias.
+#Analyze blast
+##Choose the ones with 1,2 and 3 matches, and put them in a separate file, we are only going to put the name of the sequences.
 for i in *.b7 ; do 
         echo $i 
 	cat $i | cut -f1 | sort | uniq -c | grep " 1 " \
