@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# Procesar un conjuntpo de carpetas que tienen cada una las
+# lecturas en ambos sentidos
+#
+# uso: dp_all carpeta1 carpeta2 ...
+#
+
+if [ $1 == "help" ] ; then
+  echo "uso: do_all car1 car2 car3..."
+  exit
+fi
+
+for i in $* ; do 
+   echo $i ;
+   ../script/assemble_mates_v4.sh -i -B -v \
+           -S $i -o $i \
+           -R ref/ibdv.fna \
+	   -1 $i/*_R1_* -2 $i/*_R2_* \
+	   |& tee $i/ass4_B.log
+done

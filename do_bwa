@@ -1,0 +1,24 @@
+for i in B?-? lnc* ; do
+    
+    banner $i
+    mkdir -p $i/${i}_x_ibdv/bwa
+    cd $i/${i}_x_ibdv/bwa
+    echo "working in" `pwd`
+    if [ ! -e filtered_R1.fastq ] ; then
+        ln -s ../R1.fastq filtered_R1.fastq
+    fi
+    if [ ! -e filtered_R2.fastq ] ; then
+        ln -s ../R2.fastq filtered_R2.fastq
+    fi
+    if [ ! -e reference.fna ] ; then
+        cp ../reference.fna .
+    fi
+    
+    # align using BWA
+    echo "Aligning using BWA"
+    ~/work/jrrodriguez/birnavirus-ngs/script/align_bwa-v0ucsc+.sh \
+        filtered_R1.fastq aligned.bwa reference.fna 1
+    
+    # return from this subdirectory to where we were before
+    cd -
+done
